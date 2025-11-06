@@ -11,39 +11,39 @@ export const submitCalculator = async (req, res) => {
       printer_type, 
       brand, 
       job_type, 
-      contact_method, 
-      contact_value,
+      contact_method,
+      name,
+      phone,
+      email,
       language 
     } = req.body;
 
     // Validation - required fields
-    if (!printer_type || !brand || !job_type || !contact_value) {
+    if (!printer_type || !brand || !job_type || !name || !phone || !email) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
-        required: ['printer_type', 'brand', 'job_type', 'contact_value']
+        required: ['printer_type', 'brand', 'job_type', 'name', 'phone', 'email']
       });
     }
 
-    // Validate contact value based on method
-    if (contact_method === 'email') {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(contact_value)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid email format'
-        });
-      }
-    } else {
-      // Validate phone (WhatsApp/Telegram)
-      const phoneRegex = /^\+995\d{9}$/;
-      const cleanPhone = contact_value.replace(/\s/g, '');
-      if (!phoneRegex.test(cleanPhone)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid phone format. Expected: +995XXXXXXXXX'
-        });
-      }
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Validate phone (WhatsApp/Telegram)
+    const phoneRegex = /^\+995\d{9}$/;
+    const cleanPhone = phone.replace(/\s/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone format. Expected: +995XXXXXXXXX'
+      });
     }
 
     // Prepare email data
@@ -52,7 +52,9 @@ export const submitCalculator = async (req, res) => {
       brand,
       job_type,
       contact_method,
-      contact_value,
+      name,
+      phone,
+      email,
       language: language || 'en',
       submitted_at: new Date().toLocaleString('ru-RU', {
         timeZone: 'Asia/Tbilisi',
