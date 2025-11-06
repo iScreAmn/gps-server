@@ -8,7 +8,7 @@ import { getEmailConfig, getAdminEmail, emailSender } from '../config/email.js';
  */
 const createTransporter = () => {
   const config = getEmailConfig();
-  console.log('🔧 Creating transporter with config:', {
+  console.log('Creating transporter with config:', {
     host: config.host,
     port: config.port,
     user: config.auth.user,
@@ -27,9 +27,11 @@ const translations = {
     brand: 'Brand',
     jobType: 'Job Type',
     contactMethod: 'Contact Method',
-    contact: 'Contact',
+    name: 'Name',
+    phone: 'Phone',
+    email: 'Email',
     date: 'Date Submitted',
-    footer: 'Automatic notification from GPS App Calculator',
+    footer: 'Automatic notification from Calculator',
     company: 'Georgian Polygraph Services'
   },
   ka: {
@@ -38,10 +40,12 @@ const translations = {
     brand: 'ბრენდი',
     jobType: 'სამუშაოს ტიპი',
     contactMethod: 'კონტაქტის მეთოდი',
-    contact: 'კონტაქტი',
+    name: 'სახელი',
+    phone: 'ტელეფონი',
+    email: 'ელ. ფოსტა',
     date: 'გაგზავნის თარიღი',
-    footer: 'ავტომატური შეტყობინება GPS App კალკულატორიდან',
-    company: 'ჯორჯიან პოლიგრაფ სერვისი'
+    footer: 'ავტომატური შეტყობინება საიტის კალკულატორიდან',
+    company: 'ჯორჯიან პოლიგრაფ სერვისის'
   }
 };
 
@@ -206,8 +210,16 @@ const generateEmailHTML = (data) => {
             <div class="value">${data.contact_method}</div>
           </div>
           <div class="field highlight">
-            <div class="label">✉️ ${t.contact}</div>
-            <div class="value">${data.contact_value}</div>
+            <div class="label">👤 ${t.name}</div>
+            <div class="value">${data.name}</div>
+          </div>
+          <div class="field highlight">
+            <div class="label">📱 ${t.phone}</div>
+            <div class="value">${data.phone}</div>
+          </div>
+          <div class="field highlight">
+            <div class="label">✉️ ${t.email}</div>
+            <div class="value">${data.email}</div>
           </div>
           <div class="field">
             <div class="label">📅 ${t.date}</div>
@@ -250,7 +262,11 @@ ${t.printerType}: ${data.printer_type}
 ${t.brand}: ${data.brand}
 ${t.jobType}: ${data.job_type}
 ${t.contactMethod}: ${data.contact_method}
-${t.contact}: ${data.contact_value}
+
+${t.name}: ${data.name}
+${t.phone}: ${data.phone}
+${t.email}: ${data.email}
+
 ${t.date}: ${data.submitted_at}
 
 ${'='.repeat(50)}
@@ -283,7 +299,7 @@ export const sendCalculatorEmail = async (data) => {
     subject: `Новая заявка: ${data.printer_type} - ${data.brand}`,
     html: generateEmailHTML(data),
     text: generatePlainText(data),
-    replyTo: data.contact_method === 'email' ? data.contact_value : undefined
+    replyTo: data.email ? `"${data.name}" <${data.email}>` : undefined
   };
 
   try {
