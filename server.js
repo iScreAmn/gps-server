@@ -27,8 +27,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 const defaultOrigins = [
+  'http://localhost:5168',
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://127.0.0.1:5168',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
   'https://geopolser.ge',
   'https://www.geopolser.ge'
 ];
@@ -40,7 +44,16 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 
 // Middleware
 app.use(cors({
-  origin: allowedOrigins.length ? allowedOrigins : defaultOrigins,
+  // Allow configured origins, plus any localhost/127.0.0.1 on any port
+  origin: (origin, callback) => {
+    const whitelist = allowedOrigins.length ? allowedOrigins : defaultOrigins;
+    if (!origin) return callback(null, true);
+    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\\d+)?$/i.test(origin);
+    if (whitelist.includes(origin) || isLocal) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
