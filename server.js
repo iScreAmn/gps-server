@@ -26,14 +26,21 @@ if (!process.env.ADMIN_EMAIL) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://geopolser.ge',
+  'https://www.geopolser.ge'
+];
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 // Middleware
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://geopolser.ge',
-    'https://www.geopolser.ge'
-  ],
+  origin: allowedOrigins.length ? allowedOrigins : defaultOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
