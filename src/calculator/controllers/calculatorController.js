@@ -8,7 +8,8 @@ import { sendCalculatorEmail } from '../services/emailService.js';
 export const submitCalculator = async (req, res) => {
   try {
     const { 
-      printer_type, 
+      device_type, 
+      printer_type,
       brand, 
       job_type, 
       contact_method,
@@ -18,12 +19,14 @@ export const submitCalculator = async (req, res) => {
       language 
     } = req.body;
 
+    const normalizedDeviceType = device_type || printer_type;
+
     // Validation - required fields
-    if (!printer_type || !brand || !job_type || !name || !phone || !email) {
+    if (!normalizedDeviceType || !brand || !job_type || !name || !phone || !email) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
-        required: ['printer_type', 'brand', 'job_type', 'name', 'phone', 'email']
+        required: ['device_type', 'brand', 'job_type', 'name', 'phone', 'email']
       });
     }
 
@@ -48,7 +51,7 @@ export const submitCalculator = async (req, res) => {
 
     // Prepare email data
     const emailData = {
-      printer_type,
+      device_type: normalizedDeviceType,
       brand,
       job_type,
       contact_method,
@@ -74,7 +77,7 @@ export const submitCalculator = async (req, res) => {
 
     // Log successful submission
     console.log('Calculator submission successful:', {
-      printer_type,
+      device_type: normalizedDeviceType,
       brand,
       job_type,
       contact_method,
@@ -86,7 +89,7 @@ export const submitCalculator = async (req, res) => {
       success: true,
       message: 'Заявка успешно отправлена!',
       data: {
-        printer_type,
+        device_type: normalizedDeviceType,
         brand,
         job_type,
         timestamp: emailData.submitted_at

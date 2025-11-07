@@ -23,7 +23,7 @@ const createTransporter = () => {
 const translations = {
   en: {
     title: 'New Calculator Submission',
-    printerType: 'Printer Type',
+    deviceType: 'Device Type',
     brand: 'Brand',
     jobType: 'Job Type',
     contactMethod: 'Contact Method',
@@ -32,11 +32,12 @@ const translations = {
     email: 'Email',
     date: 'Date Submitted',
     footer: 'Automatic notification from Calculator',
-    company: 'Georgian Polygraph Services'
+    company: 'Georgian Polygraph Services',
+    selectionChain: 'Selection Chain'
   },
   ka: {
     title: 'ახალი განაცხადი კალკულატორიდან',
-    printerType: 'პრინტერის ტიპი',
+    deviceType: 'მოწყობილობის ტიპი',
     brand: 'ბრენდი',
     jobType: 'სამუშაოს ტიპი',
     contactMethod: 'კონტაქტის მეთოდი',
@@ -45,8 +46,52 @@ const translations = {
     email: 'ელ. ფოსტა',
     date: 'გაგზავნის თარიღი',
     footer: 'ავტომატური შეტყობინება საიტის კალკულატორიდან',
-    company: 'ჯორჯიან პოლიგრაფ სერვისის'
+    company: 'ჯორჯიან პოლიგრაფ სერვისის',
+    selectionChain: 'არჩევის ჯაჭვი'
   }
+};
+
+/**
+ * Device type labels in both languages
+ */
+const deviceTypeLabels = {
+  printer: { en: 'Printer', ka: 'პრინტერი' },
+  cutter: { en: 'Cutter', ka: 'საჭრელი' },
+  binder: { en: 'Binder', ka: 'ამკინძავი' },
+  laminator: { en: 'Laminator', ka: 'ლამინატორი' }
+};
+
+/**
+ * Job type labels in both languages
+ */
+const jobTypeLabels = {
+  advertising: { en: 'Advertising', ka: 'სარეკლამო' },
+  photoStudio: { en: 'Photo Studio', ka: 'ფოტო სტუდია' },
+  typography: { en: 'Typography', ka: 'სტამბა' }
+};
+
+/**
+ * Brand labels (brands remain identical in both languages)
+ */
+const brandLabels = {
+  develop: { en: 'Develop', ka: 'Develop' },
+  nocai: { en: 'Nocai', ka: 'Nocai' },
+  audley: { en: 'Audley', ka: 'Audley' },
+  koenigBauer: { en: 'Koenig & Bauer', ka: 'Koenig & Bauer' },
+  iecho: { en: 'IECHO', ka: 'IECHO' },
+  teneth: { en: 'Teneth', ka: 'Teneth' },
+  ideal: { en: 'Ideal', ka: 'Ideal' },
+  duplo: { en: 'Duplo', ka: 'Duplo' },
+  rapid: { en: 'Rapid', ka: 'Rapid' },
+  recoSystems: { en: 'Reco Systems', ka: 'Reco Systems' },
+  matrix: { en: 'Matrix', ka: 'Matrix' }
+};
+
+const getLabel = (labels, key, language = 'en') => {
+  if (!labels[key]) {
+    return key;
+  }
+  return labels[key][language] || labels[key].en || key;
 };
 
 /**
@@ -55,11 +100,28 @@ const translations = {
  * @returns {String} HTML string
  */
 const generateEmailHTML = (data) => {
-  const t = translations[data.language] || translations.en;
+  const currentLanguage = translations[data.language] ? data.language : 'en';
+  const t = translations[currentLanguage];
+  const enLabels = translations.en;
+  const kaLabels = translations.ka;
+
+  const deviceTypeCurrent = getLabel(deviceTypeLabels, data.device_type, currentLanguage);
+  const brandCurrent = getLabel(brandLabels, data.brand, currentLanguage);
+  const jobTypeCurrent = getLabel(jobTypeLabels, data.job_type, currentLanguage);
+
+  const deviceTypeEn = getLabel(deviceTypeLabels, data.device_type, 'en');
+  const deviceTypeKa = getLabel(deviceTypeLabels, data.device_type, 'ka');
+  const brandEn = getLabel(brandLabels, data.brand, 'en');
+  const brandKa = getLabel(brandLabels, data.brand, 'ka');
+  const jobTypeEn = getLabel(jobTypeLabels, data.job_type, 'en');
+  const jobTypeKa = getLabel(jobTypeLabels, data.job_type, 'ka');
+
+  const selectionChainEn = `${enLabels.deviceType}: ${deviceTypeEn} → ${enLabels.brand}: ${brandEn} → ${enLabels.jobType}: ${jobTypeEn}`;
+  const selectionChainKa = `${kaLabels.deviceType}: ${deviceTypeKa} → ${kaLabels.brand}: ${brandKa} → ${kaLabels.jobType}: ${jobTypeKa}`;
 
   return `
     <!DOCTYPE html>
-    <html lang="${data.language}">
+    <html lang="${currentLanguage}">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -136,8 +198,15 @@ const generateEmailHTML = (data) => {
         }
         .field.highlight .value {
           color: #2e7d32;
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 600;
+        }
+        .value .line {
+          display: block;
+          margin-bottom: 6px;
+        }
+        .value .line:last-of-type {
+          margin-bottom: 0;
         }
         .email-footer { 
           text-align: center; 
@@ -181,7 +250,7 @@ const generateEmailHTML = (data) => {
             font-size: 16px;
           }
           .field.highlight .value {
-            font-size: 18px;
+            font-size: 16px;
           }
         }
       </style>
@@ -193,17 +262,24 @@ const generateEmailHTML = (data) => {
           <h1>${t.title}</h1>
         </div>
         <div class="email-content">
+          <div class="field" style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(76, 175, 80, 0.1)); border-left-color: #4CAF50;">
+            <div class="label" style="color: #4CAF50;">📋 ${t.selectionChain}</div>
+            <div class="value" style="color: #2e7d32; font-size: 18px; line-height: 1.8;">
+              <span class="line">${selectionChainEn}</span>
+              <span class="line">${selectionChainKa}</span>
+            </div>
+          </div>
           <div class="field">
-            <div class="label">📦 ${t.printerType}</div>
-            <div class="value">${data.printer_type}</div>
+            <div class="label">📦 ${t.deviceType}</div>
+            <div class="value">${deviceTypeCurrent}</div>
           </div>
           <div class="field">
             <div class="label">🏢 ${t.brand}</div>
-            <div class="value">${data.brand}</div>
+            <div class="value">${brandCurrent}</div>
           </div>
           <div class="field">
             <div class="label">💼 ${t.jobType}</div>
-            <div class="value">${data.job_type}</div>
+            <div class="value">${jobTypeCurrent}</div>
           </div>
           <div class="field">
             <div class="label">📞 ${t.contactMethod}</div>
@@ -252,15 +328,37 @@ const generateEmailHTML = (data) => {
  * @returns {String} Plain text string
  */
 const generatePlainText = (data) => {
-  const t = translations[data.language] || translations.en;
-  
+  const currentLanguage = translations[data.language] ? data.language : 'en';
+  const t = translations[currentLanguage];
+  const enLabels = translations.en;
+  const kaLabels = translations.ka;
+
+  const deviceTypeCurrent = getLabel(deviceTypeLabels, data.device_type, currentLanguage);
+  const brandCurrent = getLabel(brandLabels, data.brand, currentLanguage);
+  const jobTypeCurrent = getLabel(jobTypeLabels, data.job_type, currentLanguage);
+
+  const deviceTypeEn = getLabel(deviceTypeLabels, data.device_type, 'en');
+  const deviceTypeKa = getLabel(deviceTypeLabels, data.device_type, 'ka');
+  const brandEn = getLabel(brandLabels, data.brand, 'en');
+  const brandKa = getLabel(brandLabels, data.brand, 'ka');
+  const jobTypeEn = getLabel(jobTypeLabels, data.job_type, 'en');
+  const jobTypeKa = getLabel(jobTypeLabels, data.job_type, 'ka');
+
   return `
 ${t.title}
 ${'='.repeat(50)}
 
-${t.printerType}: ${data.printer_type}
-${t.brand}: ${data.brand}
-${t.jobType}: ${data.job_type}
+${enLabels.selectionChain}:
+${enLabels.deviceType}: ${deviceTypeEn} -> ${enLabels.brand}: ${brandEn} -> ${enLabels.jobType}: ${jobTypeEn}
+
+${kaLabels.selectionChain}:
+${kaLabels.deviceType}: ${deviceTypeKa} -> ${kaLabels.brand}: ${brandKa} -> ${kaLabels.jobType}: ${jobTypeKa}
+
+${'='.repeat(50)}
+
+${t.deviceType}: ${deviceTypeCurrent}
+${t.brand}: ${brandCurrent}
+${t.jobType}: ${jobTypeCurrent}
 ${t.contactMethod}: ${data.contact_method}
 
 ${t.name}: ${data.name}
@@ -293,10 +391,13 @@ export const sendCalculatorEmail = async (data) => {
     passwordLength: config.auth.pass?.length
   });
   
+  const subjectDeviceLabel = getLabel(deviceTypeLabels, data.device_type, 'en');
+  const subjectBrandLabel = getLabel(brandLabels, data.brand, 'en');
+
   const mailOptions = {
     from: `"${emailSender.name}" <${emailSender.email}>`,
     to: getAdminEmail(),
-    subject: `Новая заявка: ${data.printer_type} - ${data.brand}`,
+    subject: `Новая заявка: ${subjectDeviceLabel} - ${subjectBrandLabel}`,
     html: generateEmailHTML(data),
     text: generatePlainText(data),
     replyTo: data.email ? `"${data.name}" <${data.email}>` : undefined
