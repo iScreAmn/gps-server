@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
+import scannerRoutes from './src/scanner/routes/scanner.js';
 
 // Get current directory (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
@@ -59,8 +60,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -90,6 +91,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/calculator', calculatorRoutes);
+app.use('/api/scanner', scannerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
