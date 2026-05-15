@@ -5,6 +5,9 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import scannerRoutes from './src/scanner/routes/scanner.js';
+import chatRoutes from './src/chat/routes/chat.js';
+import { initTelegramBot, onTelegramMessage } from './src/chat/services/telegramService.js';
+import { addPendingMessage } from './src/chat/controllers/chatController.js';
 
 // Get current directory (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +26,24 @@ if (!process.env.ADMIN_EMAIL) {
   console.error('WARNING: ADMIN_EMAIL not found in .env file!');
   console.error('Emails will not be sent until ADMIN_EMAIL is configured');
 }
+
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+  console.error('WARNING: TELEGRAM_BOT_TOKEN not found in .env file!');
+  console.error('Telegram bot will not work until TELEGRAM_BOT_TOKEN is configured');
+}
+
+if (!process.env.TELEGRAM_ADMIN_CHAT_ID) {
+  console.error('WARNING: TELEGRAM_ADMIN_CHAT_ID not found in .env file!');
+  console.error('Telegram messages will not be sent until TELEGRAM_ADMIN_CHAT_ID is configured');
+}
+
+// Initialize Telegram Bot
+initTelegramBot();
+
+// Set up message handler for Telegram replies
+onTelegramMessage((userId, message) => {
+  addPendingMessage(userId, message);
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -92,6 +113,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/calculator', calculatorRoutes);
 app.use('/api/scanner', scannerRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

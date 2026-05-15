@@ -9,14 +9,20 @@
     "dev": "nodemon server.js",
     "vercel-build": "echo 'Building for Vercel'"
   },
-  "keywords": ["api", "backend", "gps", "calculator"],
+  "keywords": [
+    "api",
+    "backend",
+    "gps",
+    "calculator"
+  ],
   "author": "Georgian Polygraph Services",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "nodemailer": "^6.9.7",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "node-telegram-bot-api": "^0.67.0",
+    "nodemailer": "^6.9.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -25,4 +31,3 @@
     "node": ">=18.0.0"
   }
 }
-
