@@ -127,6 +127,79 @@ export const sendToTelegram = async (userId, userName, message, timestamp) => {
 };
 
 /**
+ * Send a photo (with optional caption) to Telegram.
+ * @param {string} userId
+ * @param {string} userName
+ * @param {Buffer} buffer       Raw image bytes
+ * @param {string} mime         e.g. "image/jpeg"
+ * @param {string} caption      Optional user text accompanying the image
+ * @param {Date}   timestamp
+ * @returns {Promise<boolean>}
+ */
+export const sendImageToTelegram = async (
+  userId,
+  userName,
+  buffer,
+  mime,
+  caption,
+  timestamp
+) => {
+  if (!bot || !isInitialized) {
+    console.error('Telegram bot not initialized');
+    return false;
+  }
+
+  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!chatId || chatId === 'your_chat_id_here') {
+    console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
+    return false;
+  }
+
+  try {
+    const formattedTime = new Intl.DateTimeFormat('ka-GE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(timestamp);
+
+    const header =
+      `💡 Изображение из чата поддержи GPS\n\n` +
+      `👤 Имя: ${userName || 'Неизвестный'}` +
+      (caption ? `\n💬 Сообщение: ${caption}` : '') +
+      `\n\nОтправлено: ${formattedTime}`;
+
+    const ext =
+      mime === 'image/png' ? 'png' :
+      mime === 'image/webp' ? 'webp' :
+      mime === 'image/gif' ? 'gif' : 'jpg';
+
+    const sentMessage = await bot.sendPhoto(
+      chatId,
+      buffer,
+      { caption: header },
+      { filename: `image.${ext}`, contentType: mime }
+    );
+
+    messageIdToUser.set(sentMessage.message_id, userId);
+
+    userSessions.set(userId, {
+      chatId: sentMessage.chat.id,
+      userName: userName || 'Неизвестный',
+      lastMessageId: sentMessage.message_id,
+    });
+
+    console.log(`Image sent to Telegram for user ${userId}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send image to Telegram:', error.message);
+    return false;
+  }
+};
+
+/**
  * Set callback for receiving messages from Telegram
  * @param {Function} callback - Callback function (userId, message)
  */

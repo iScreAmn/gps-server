@@ -1,10 +1,13 @@
 import express from 'express';
-import { sendMessage, getMessages, clearMessages } from '../controllers/chatController.js';
+import { sendMessage, sendImage, getMessages, clearMessages } from '../controllers/chatController.js';
 
 const router = express.Router();
 
-// Send message to Telegram
+// Send text message to Telegram
 router.post('/send', sendMessage);
+
+// Send image (+ optional caption) to Telegram
+router.post('/send-image', sendImage);
 
 // Get pending messages for user
 router.get('/messages/:userId', getMessages);

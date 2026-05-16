@@ -1,4 +1,4 @@
-import { sendToTelegram } from '../services/telegramService.js';
+import { sendToTelegram, sendImageToTelegram } from '../services/telegramService.js';
 
 // Store pending messages for each user (in-memory)
 // In production, use Redis or database
@@ -40,6 +40,62 @@ export const sendMessage = async (req, res) => {
       success: false,
       message: 'Internal server error',
       error: error.message
+    });
+  }
+};
+
+/**
+ * Send an image (optionally with caption) to Telegram
+ * POST /api/chat/send-image
+ * Body: { userId, userName, imageDataUrl, caption?, timestamp? }
+ */
+export const sendImage = async (req, res) => {
+  try {
+    const { userId, userName, imageDataUrl, caption, timestamp } = req.body;
+
+    if (!userId || !imageDataUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId and imageDataUrl are required',
+      });
+    }
+
+    const match = String(imageDataUrl).match(
+      /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/
+    );
+    if (!match) {
+      return res.status(400).json({
+        success: false,
+        message: 'imageDataUrl must be a base64 image data URL',
+      });
+    }
+
+    const mime = match[1];
+    const buffer = Buffer.from(match[2], 'base64');
+    const messageTime = timestamp ? new Date(timestamp) : new Date();
+
+    const success = await sendImageToTelegram(
+      userId,
+      userName,
+      buffer,
+      mime,
+      caption,
+      messageTime
+    );
+
+    if (success) {
+      return res.json({ success: true, message: 'Image sent to Telegram' });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send image to Telegram',
+    });
+  } catch (error) {
+    console.error('Error in sendImage:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
     });
   }
 };
