@@ -3,10 +3,10 @@ import TelegramBot from 'node-telegram-bot-api';
 let bot = null;
 let isInitialized = false;
 
-// Store user sessions: userId -> { chatId, userName }
+// Store user sessions: userId -> { chatId, userName, lastMessageId }
 const userSessions = new Map();
-// Store admin chat sessions: telegramChatId -> { userId, userName }
-const adminSessions = new Map();
+// telegram message_id -> userId (for reply routing)
+const messageIdToUser = new Map();
 // Store pending messages callback
 let onMessageCallback = null;
 
@@ -45,15 +45,10 @@ export const initTelegramBot = () => {
       
       // Check if this is a reply to a user message
       if (msg.reply_to_message) {
-        const originalMessage = msg.reply_to_message;
-        // Extract userId from the original message
-        const userIdMatch = originalMessage.text?.match(/ID:\s*(\w+)/);
-        
-        if (userIdMatch && userIdMatch[1]) {
-          const userId = userIdMatch[1];
-          const userName = userSessions.get(userId)?.userName || 'Неизвестный';
-          
-          // Store the reply for the client to fetch
+        const originalId = msg.reply_to_message.message_id;
+        const userId = messageIdToUser.get(originalId);
+
+        if (userId) {
           if (onMessageCallback) {
             onMessageCallback(userId, {
               text: text,
@@ -61,7 +56,7 @@ export const initTelegramBot = () => {
               userName: msg.from.first_name || 'Поддержка'
             });
           }
-          
+
           console.log(`Received reply for user ${userId}: ${text}`);
         }
       }
@@ -111,11 +106,12 @@ export const sendToTelegram = async (userId, userName, message, timestamp) => {
       hourCycle: 'h23'
     }).format(timestamp);
 
-    const text = `💡 Сообщение из чата поддержи GPS\n\n👤 Имя: ${userName || 'Неизвестный'}\n💬 Сообщение: ${message}\n\nОтправлено: ${formattedTime}\n\nID: ${userId}`;
+    const text = `💡 Сообщение из чата поддержи GPS\n\n👤 Имя: ${userName || 'Неизвестный'}\n💬 Сообщение: ${message}\n\nОтправлено: ${formattedTime}`;
 
     const sentMessage = await bot.sendMessage(chatId, text);
 
-    // Store user session
+    messageIdToUser.set(sentMessage.message_id, userId);
+
     userSessions.set(userId, {
       chatId: sentMessage.chat.id,
       userName: userName || 'Неизвестный',
