@@ -1,7 +1,11 @@
 import { sendToTelegram, sendImageToTelegram } from '../services/telegramService.js';
+import {
+  insertUserMessage,
+  insertUserImage,
+  insertAgentMessage,
+} from '../../db/index.js';
 
-// Store pending messages for each user (in-memory)
-// In production, use Redis or database
+// In-memory queue for polling delivery (persistent storage is in Postgres).
 const pendingMessages = new Map();
 
 /**
@@ -20,6 +24,12 @@ export const sendMessage = async (req, res) => {
     }
 
     const messageTime = timestamp ? new Date(timestamp) : new Date();
+
+    try {
+      await insertUserMessage({ userId, userName, text: message, at: messageTime });
+    } catch (dbErr) {
+      console.error('DB insert (user message) failed:', dbErr.message);
+    }
 
     const success = await sendToTelegram(userId, userName, message, messageTime);
 
@@ -73,6 +83,12 @@ export const sendImage = async (req, res) => {
     const mime = match[1];
     const buffer = Buffer.from(match[2], 'base64');
     const messageTime = timestamp ? new Date(timestamp) : new Date();
+
+    try {
+      await insertUserImage({ userId, userName, buffer, mime, caption, at: messageTime });
+    } catch (dbErr) {
+      console.error('DB insert (user image) failed:', dbErr.message);
+    }
 
     const success = await sendImageToTelegram(
       userId,
@@ -148,7 +164,7 @@ export const addPendingMessage = (userId, message) => {
   if (!pendingMessages.has(userId)) {
     pendingMessages.set(userId, []);
   }
-  
+
   const userMessages = pendingMessages.get(userId);
   userMessages.push({
     id: `agent-${Date.now()}`,
@@ -159,10 +175,14 @@ export const addPendingMessage = (userId, message) => {
     userName: message.userName
   });
 
-  // Keep only last 50 messages per user
+  // Keep only last 50 messages per user in the polling queue
   if (userMessages.length > 50) {
     userMessages.shift();
   }
+
+  insertAgentMessage({ userId, text: message.text, at: message.at }).catch((err) =>
+    console.error('DB insert (agent message) failed:', err.message)
+  );
 
   console.log(`Added pending message for user ${userId}`);
 };

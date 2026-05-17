@@ -8,6 +8,7 @@ import scannerRoutes from './src/scanner/routes/scanner.js';
 import chatRoutes from './src/chat/routes/chat.js';
 import { initTelegramBot, onTelegramMessage } from './src/chat/services/telegramService.js';
 import { addPendingMessage } from './src/chat/controllers/chatController.js';
+import { initSchema } from './src/db/index.js';
 
 // Get current directory (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,11 @@ if (!process.env.TELEGRAM_ADMIN_CHAT_ID) {
   console.error('WARNING: TELEGRAM_ADMIN_CHAT_ID not found in .env file!');
   console.error('Telegram messages will not be sent until TELEGRAM_ADMIN_CHAT_ID is configured');
 }
+
+// Initialize Postgres schema
+initSchema().catch((err) => {
+  console.error('Failed to initialize Postgres schema:', err.message);
+});
 
 // Initialize Telegram Bot
 initTelegramBot();
