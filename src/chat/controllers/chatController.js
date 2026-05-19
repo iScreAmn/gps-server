@@ -170,7 +170,12 @@ export const getHistoryHandler = async (req, res) => {
     return res.json({ success: true, messages });
   } catch (error) {
     console.error('Error in getHistoryHandler:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+      code: error.code,
+    });
   }
 };
 
