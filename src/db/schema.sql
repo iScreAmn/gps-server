@@ -18,3 +18,6 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS messages_user_at_idx ON messages (user_id, at);
+
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS telegram_message_id BIGINT;
+CREATE INDEX IF NOT EXISTS messages_tg_msg_id_idx ON messages (telegram_message_id);

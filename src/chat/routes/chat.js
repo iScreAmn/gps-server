@@ -9,7 +9,7 @@ router.post('/send', sendMessage);
 // Send image (+ optional caption) to Telegram
 router.post('/send-image', sendImage);
 
-// Get pending messages for user
+// Get new agent messages for user (polling)
 router.get('/messages/:userId', getMessages);
 
 // Get persisted full history from DB

@@ -1,99 +1,98 @@
 import TelegramBot from 'node-telegram-bot-api';
+import { findUserByTelegramMessageId, insertAgentMessage } from '../../db/index.js';
 
 let bot = null;
 let isInitialized = false;
 
-// Store user sessions: userId -> { chatId, userName, lastMessageId }
-const userSessions = new Map();
-// telegram message_id -> userId (for reply routing)
-const messageIdToUser = new Map();
-// Store pending messages callback
-let onMessageCallback = null;
+const isVercel = process.env.VERCEL === '1';
 
-/**
- * Initialize Telegram Bot
- */
-export const initTelegramBot = () => {
+const handleIncomingMessage = async (msg) => {
+  const text = msg.text;
+
+  if (text?.startsWith('/')) {
+    if (text === '/start' && bot) {
+      try {
+        await bot.sendMessage(
+          msg.chat.id,
+          '👋 Бот активирован! Вы будете получать сообщения из чата поддержки на сайте.'
+        );
+      } catch {}
+    }
+    return;
+  }
+
+  if (!msg.reply_to_message) return;
+
+  const telegramMsgId = msg.reply_to_message.message_id;
+  try {
+    const userId = await findUserByTelegramMessageId(telegramMsgId);
+    if (!userId) {
+      console.log(`No user found for telegram message_id ${telegramMsgId}`);
+      return;
+    }
+
+    await insertAgentMessage({ userId, text: text || '', at: new Date() });
+    console.log(`Reply saved for user ${userId}: ${text}`);
+  } catch (err) {
+    console.error('Failed to process incoming Telegram message:', err.message);
+  }
+};
+
+export const initTelegramBot = async () => {
   if (isInitialized) return;
-  
+
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || token === 'your_bot_token_here') {
     console.error('WARNING: TELEGRAM_BOT_TOKEN not found in .env file!');
-    console.error('Telegram bot will not work. Please configure TELEGRAM_BOT_TOKEN in .env');
-    console.error('See TELEGRAM_SETUP.md for instructions');
     return;
   }
 
   try {
-    bot = new TelegramBot(token, { polling: true });
+    if (isVercel) {
+      bot = new TelegramBot(token);
+      bot.on('message', handleIncomingMessage);
+
+      const baseUrl = process.env.TELEGRAM_WEBHOOK_URL;
+      if (baseUrl) {
+        const hookUrl = `${baseUrl.replace(/\/$/, '')}/api/telegram/webhook`;
+        const secret = process.env.TELEGRAM_WEBHOOK_SECRET || '';
+        await bot.setWebHook(hookUrl, secret ? { secret_token: secret } : {});
+        console.log('Telegram webhook set:', hookUrl);
+      } else {
+        console.warn('TELEGRAM_WEBHOOK_URL not set — replies from Telegram will not work');
+      }
+    } else {
+      bot = new TelegramBot(token);
+      try { await bot.deleteWebHook(); } catch {}
+      bot = new TelegramBot(token, { polling: true });
+      bot.on('message', handleIncomingMessage);
+      bot.on('polling_error', (error) => {
+        console.error('Telegram polling error:', error.message);
+      });
+    }
+
     isInitialized = true;
-    
-    console.log('Telegram bot initialized successfully');
-    
-    // Handle incoming messages from admin
-    bot.on('message', async (msg) => {
-      const chatId = msg.chat.id;
-      const text = msg.text;
-      
-      // Skip if it's a command
-      if (text?.startsWith('/')) {
-        if (text === '/start') {
-          await bot.sendMessage(chatId, '👋 Бот активирован! Вы будете получать сообщения из чата поддержки на сайте.');
-        }
-        return;
-      }
-      
-      // Check if this is a reply to a user message
-      if (msg.reply_to_message) {
-        const originalId = msg.reply_to_message.message_id;
-        const userId = messageIdToUser.get(originalId);
-
-        if (userId) {
-          if (onMessageCallback) {
-            onMessageCallback(userId, {
-              text: text,
-              at: new Date(),
-              userName: msg.from.first_name || 'Поддержка'
-            });
-          }
-
-          console.log(`Received reply for user ${userId}: ${text}`);
-        }
-      }
-    });
-
-    bot.on('polling_error', (error) => {
-      console.error('Telegram polling error:', error.message);
-      if (error.code === 'ETELEGRAM' && error.response?.statusCode === 401) {
-        console.error('Invalid bot token. Please check TELEGRAM_BOT_TOKEN in .env');
-      } else if (error.code === 'ETELEGRAM' && error.response?.statusCode === 404) {
-        console.error('Bot not found. Please check TELEGRAM_BOT_TOKEN in .env');
-      }
-    });
-    
+    console.log(`Telegram bot initialized (${isVercel ? 'webhook' : 'polling'} mode)`);
   } catch (error) {
     console.error('Failed to initialize Telegram bot:', error.message);
   }
 };
 
-/**
- * Send message to Telegram
- * @param {string} userId - User session ID
- * @param {string} userName - User name
- * @param {string} message - Message text
- * @param {Date} timestamp - Message timestamp
- * @returns {Promise<boolean>}
- */
+export const processWebhookUpdate = (body) => {
+  if (!bot) return;
+  bot.processUpdate(body);
+};
+
 export const sendToTelegram = async (userId, userName, message, timestamp) => {
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
-    return false;
+    return { success: false };
   }
 
   const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (!chatId || chatId === 'your_chat_id_here') {
     console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
-    return false;
+    return { success: false };
   }
 
   try {
@@ -103,39 +102,20 @@ export const sendToTelegram = async (userId, userName, message, timestamp) => {
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      hourCycle: 'h23'
+      hourCycle: 'h23',
     }).format(timestamp);
 
     const text = `💡 Сообщение из чата поддержи GPS\n\n👤 Имя: ${userName || 'Неизвестный'}\n💬 Сообщение: ${message}\n\nОтправлено: ${formattedTime}`;
-
     const sentMessage = await bot.sendMessage(chatId, text);
 
-    messageIdToUser.set(sentMessage.message_id, userId);
-
-    userSessions.set(userId, {
-      chatId: sentMessage.chat.id,
-      userName: userName || 'Неизвестный',
-      lastMessageId: sentMessage.message_id
-    });
-
     console.log(`Message sent to Telegram for user ${userId}`);
-    return true;
+    return { success: true, telegramMessageId: sentMessage.message_id };
   } catch (error) {
     console.error('Failed to send message to Telegram:', error.message);
-    return false;
+    return { success: false };
   }
 };
 
-/**
- * Send a photo (with optional caption) to Telegram.
- * @param {string} userId
- * @param {string} userName
- * @param {Buffer} buffer       Raw image bytes
- * @param {string} mime         e.g. "image/jpeg"
- * @param {string} caption      Optional user text accompanying the image
- * @param {Date}   timestamp
- * @returns {Promise<boolean>}
- */
 export const sendImageToTelegram = async (
   userId,
   userName,
@@ -146,13 +126,13 @@ export const sendImageToTelegram = async (
 ) => {
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
-    return false;
+    return { success: false };
   }
 
   const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (!chatId || chatId === 'your_chat_id_here') {
     console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
-    return false;
+    return { success: false };
   }
 
   try {
@@ -172,9 +152,13 @@ export const sendImageToTelegram = async (
       `\n\nОтправлено: ${formattedTime}`;
 
     const ext =
-      mime === 'image/png' ? 'png' :
-      mime === 'image/webp' ? 'webp' :
-      mime === 'image/gif' ? 'gif' : 'jpg';
+      mime === 'image/png'
+        ? 'png'
+        : mime === 'image/webp'
+          ? 'webp'
+          : mime === 'image/gif'
+            ? 'gif'
+            : 'jpg';
 
     const sentMessage = await bot.sendPhoto(
       chatId,
@@ -183,37 +167,10 @@ export const sendImageToTelegram = async (
       { filename: `image.${ext}`, contentType: mime }
     );
 
-    messageIdToUser.set(sentMessage.message_id, userId);
-
-    userSessions.set(userId, {
-      chatId: sentMessage.chat.id,
-      userName: userName || 'Неизвестный',
-      lastMessageId: sentMessage.message_id,
-    });
-
     console.log(`Image sent to Telegram for user ${userId}`);
-    return true;
+    return { success: true, telegramMessageId: sentMessage.message_id };
   } catch (error) {
     console.error('Failed to send image to Telegram:', error.message);
-    return false;
+    return { success: false };
   }
 };
-
-/**
- * Set callback for receiving messages from Telegram
- * @param {Function} callback - Callback function (userId, message)
- */
-export const onTelegramMessage = (callback) => {
-  onMessageCallback = callback;
-};
-
-/**
- * Get user session
- * @param {string} userId
- * @returns {Object|null}
- */
-export const getUserSession = (userId) => {
-  return userSessions.get(userId) || null;
-};
-
-export default { initTelegramBot, sendToTelegram, onTelegramMessage, getUserSession };

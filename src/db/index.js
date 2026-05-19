@@ -65,6 +65,38 @@ export const insertAgentMessage = async ({ userId, text, at }) => {
   return rows[0].id;
 };
 
+export const setTelegramMessageId = async (dbId, telegramMessageId) => {
+  await query(
+    'UPDATE messages SET telegram_message_id = $1 WHERE id = $2',
+    [telegramMessageId, dbId]
+  );
+};
+
+export const findUserByTelegramMessageId = async (telegramMessageId) => {
+  const { rows } = await query(
+    'SELECT user_id FROM messages WHERE telegram_message_id = $1 ORDER BY at DESC LIMIT 1',
+    [telegramMessageId]
+  );
+  return rows[0]?.user_id || null;
+};
+
+export const getNewAgentMessages = async (userId, since) => {
+  const { rows } = await query(
+    `SELECT id, text, caption, at
+       FROM messages
+      WHERE user_id = $1 AND role = 'agent' AND at > $2
+      ORDER BY at ASC`,
+    [userId, since]
+  );
+  return rows.map((r) => ({
+    id: `agent-db-${r.id}`,
+    role: 'agent',
+    kind: 'text',
+    text: r.text || r.caption,
+    at: r.at,
+  }));
+};
+
 export const getMessagesSince = async (userId, since) => {
   const { rows } = await query(
     `SELECT id, role, text, caption, image_mime, image_name, at

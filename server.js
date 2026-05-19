@@ -6,8 +6,7 @@ import { dirname, join } from 'path';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import scannerRoutes from './src/scanner/routes/scanner.js';
 import chatRoutes from './src/chat/routes/chat.js';
-import { initTelegramBot, onTelegramMessage } from './src/chat/services/telegramService.js';
-import { addPendingMessage } from './src/chat/controllers/chatController.js';
+import { initTelegramBot, processWebhookUpdate } from './src/chat/services/telegramService.js';
 import { initSchema } from './src/db/index.js';
 
 // Get current directory (for ES modules)
@@ -43,12 +42,9 @@ initSchema().catch((err) => {
   console.error('Failed to initialize Postgres schema:', err.message);
 });
 
-// Initialize Telegram Bot
-initTelegramBot();
-
-// Set up message handler for Telegram replies
-onTelegramMessage((userId, message) => {
-  addPendingMessage(userId, message);
+// Initialize Telegram Bot (async — polling locally, webhook on Vercel)
+initTelegramBot().catch((err) => {
+  console.error('Failed to initialize Telegram bot:', err.message);
 });
 
 const app = express();
@@ -98,7 +94,7 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'OK',
     service: 'GPS Server',
     message: 'Server is running',
@@ -108,12 +104,22 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'GPS App Server is running',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+// Telegram webhook endpoint
+app.post('/api/telegram/webhook', (req, res) => {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (secret && req.headers['x-telegram-bot-api-secret-token'] !== secret) {
+    return res.status(403).json({ error: 'Invalid secret' });
+  }
+  processWebhookUpdate(req.body);
+  res.json({ ok: true });
 });
 
 // API Routes
@@ -164,4 +170,3 @@ if (process.env.VERCEL !== '1') {
 }
 
 export default app;
-
