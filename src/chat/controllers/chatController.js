@@ -3,6 +3,7 @@ import {
   insertUserMessage,
   insertUserImage,
   insertAgentMessage,
+  getHistory,
 } from '../../db/index.js';
 
 // In-memory queue for polling delivery (persistent storage is in Postgres).
@@ -152,6 +153,24 @@ export const getMessages = async (req, res) => {
       message: 'Internal server error',
       error: error.message
     });
+  }
+};
+
+/**
+ * Get persisted history from Postgres
+ * GET /api/chat/history/:userId
+ */
+export const getHistoryHandler = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'userId is required' });
+    }
+    const messages = await getHistory(userId);
+    return res.json({ success: true, messages });
+  } catch (error) {
+    console.error('Error in getHistoryHandler:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 

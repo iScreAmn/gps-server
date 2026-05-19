@@ -75,3 +75,28 @@ export const getMessagesSince = async (userId, since) => {
   );
   return rows;
 };
+
+export const getHistory = async (userId, limit = 200) => {
+  const { rows } = await query(
+    `SELECT id, role, text, caption, image_bytes, image_mime, image_name, at
+       FROM messages
+      WHERE user_id = $1
+      ORDER BY at ASC
+      LIMIT $2`,
+    [userId, limit]
+  );
+  return rows.map((r) => {
+    const msg = {
+      id: `${r.role}-db-${r.id}`,
+      role: r.role,
+      at: r.at,
+    };
+    const text = r.text || r.caption;
+    if (text) msg.text = text;
+    if (r.image_bytes && r.image_mime) {
+      msg.imageUrl = `data:${r.image_mime};base64,${r.image_bytes.toString('base64')}`;
+      if (r.image_name) msg.imageName = r.image_name;
+    }
+    return msg;
+  });
+};

@@ -1,5 +1,5 @@
 import express from 'express';
-import { sendMessage, sendImage, getMessages, clearMessages } from '../controllers/chatController.js';
+import { sendMessage, sendImage, getMessages, clearMessages, getHistoryHandler } from '../controllers/chatController.js';
 
 const router = express.Router();
 
@@ -11,6 +11,9 @@ router.post('/send-image', sendImage);
 
 // Get pending messages for user
 router.get('/messages/:userId', getMessages);
+
+// Get persisted full history from DB
+router.get('/history/:userId', getHistoryHandler);
 
 // Clear messages for user
 router.delete('/messages/:userId', clearMessages);
