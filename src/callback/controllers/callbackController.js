@@ -38,7 +38,6 @@ export const submitCallback = async (req, res) => {
       name,
       phone,
       page: clean(req.body?.page),
-      pageUrl: clean(req.body?.pageUrl),
       language: clean(req.body?.language),
       timestamp: new Date(),
     });

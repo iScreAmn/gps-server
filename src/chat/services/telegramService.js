@@ -152,7 +152,6 @@ export const sendCallbackRequestToTelegram = async ({
   name,
   phone,
   page,
-  pageUrl,
   language,
   timestamp,
 }) => {
@@ -182,7 +181,6 @@ export const sendCallbackRequestToTelegram = async ({
       `👤 Имя: ${name}\n` +
       `📱 Телефон: ${phone}` +
       (page ? `\n🛒 Страница: ${page}` : '') +
-      (pageUrl ? `\n🔗 Ссылка: ${pageUrl}` : '') +
       (language ? `\n🌐 Язык сайта: ${language}` : '') +
       `\n\nОтправлено: ${formattedTime}`;
 
