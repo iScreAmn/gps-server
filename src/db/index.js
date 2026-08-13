@@ -108,6 +108,37 @@ export const getMessagesSince = async (userId, since) => {
   return rows;
 };
 
+export const addNewsletterSubscriber = async (email) => {
+  const { rows } = await query(
+    `INSERT INTO newsletter_subscribers (email)
+     VALUES ($1)
+     ON CONFLICT (email) DO UPDATE
+       SET unsubscribed_at = NULL
+       WHERE newsletter_subscribers.unsubscribed_at IS NOT NULL
+     RETURNING id, (xmax = 0) AS inserted`,
+    [email]
+  );
+  if (rows.length === 0) return { alreadySubscribed: true };
+  return { alreadySubscribed: false, resubscribed: !rows[0].inserted };
+};
+
+export const unsubscribeNewsletterEmail = async (email) => {
+  const { rows } = await query(
+    `UPDATE newsletter_subscribers SET unsubscribed_at = now()
+     WHERE email = $1 AND unsubscribed_at IS NULL
+     RETURNING id`,
+    [email]
+  );
+  return rows.length > 0;
+};
+
+export const getActiveNewsletterEmails = async () => {
+  const { rows } = await query(
+    `SELECT email FROM newsletter_subscribers WHERE unsubscribed_at IS NULL ORDER BY id ASC`
+  );
+  return rows.map((r) => r.email);
+};
+
 export const getHistory = async (userId, limit = 200) => {
   const { rows } = await query(
     `SELECT id, role, text, caption, image_bytes, image_mime, image_name, at

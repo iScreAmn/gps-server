@@ -116,6 +116,111 @@ export const sendToTelegram = async (userId, userName, message, timestamp) => {
   }
 };
 
+export const sendNewsletterSubscriberToTelegram = async (email, timestamp) => {
+  if (!bot || !isInitialized) {
+    console.error('Telegram bot not initialized');
+    return { success: false };
+  }
+
+  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!chatId || chatId === 'your_chat_id_here') {
+    console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
+    return { success: false };
+  }
+
+  try {
+    const formattedTime = new Intl.DateTimeFormat('ka-GE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(timestamp);
+
+    const text = `📩 Новая подписка на рассылку GPS\n\n✉️ Email: ${email}\n\nПодписан: ${formattedTime}`;
+    await bot.sendMessage(chatId, text);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send newsletter subscriber to Telegram:', error.message);
+    return { success: false };
+  }
+};
+
+export const sendCallbackRequestToTelegram = async ({
+  name,
+  phone,
+  page,
+  pageUrl,
+  language,
+  timestamp,
+}) => {
+  if (!bot || !isInitialized) {
+    console.error('Telegram bot not initialized');
+    return { success: false };
+  }
+
+  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!chatId || chatId === 'your_chat_id_here') {
+    console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
+    return { success: false };
+  }
+
+  try {
+    const formattedTime = new Intl.DateTimeFormat('ka-GE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(timestamp);
+
+    const text =
+      `📞 Заявка на обратный звонок GPS\n\n` +
+      `👤 Имя: ${name}\n` +
+      `📱 Телефон: ${phone}` +
+      (page ? `\n🛒 Страница: ${page}` : '') +
+      (pageUrl ? `\n🔗 Ссылка: ${pageUrl}` : '') +
+      (language ? `\n🌐 Язык сайта: ${language}` : '') +
+      `\n\nОтправлено: ${formattedTime}`;
+
+    await bot.sendMessage(chatId, text);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send callback request to Telegram:', error.message);
+    return { success: false };
+  }
+};
+
+export const sendNewsletterBroadcastSummaryToTelegram = async ({ subject, recipientCount, failedCount }) => {
+  if (!bot || !isInitialized) {
+    console.error('Telegram bot not initialized');
+    return { success: false };
+  }
+
+  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!chatId || chatId === 'your_chat_id_here') {
+    console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
+    return { success: false };
+  }
+
+  try {
+    const text =
+      `📨 Рассылка новостей отправлена\n\n` +
+      `📝 Тема: ${subject}\n` +
+      `👥 Получателей: ${recipientCount}` +
+      (failedCount ? `\n⚠️ Не доставлено: ${failedCount}` : '');
+    await bot.sendMessage(chatId, text);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send broadcast summary to Telegram:', error.message);
+    return { success: false };
+  }
+};
+
 export const sendImageToTelegram = async (
   userId,
   userName,

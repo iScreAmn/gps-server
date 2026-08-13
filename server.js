@@ -6,6 +6,8 @@ import { dirname, join } from 'path';
 import calculatorRoutes from './src/calculator/routes/calculator.js';
 import scannerRoutes from './src/scanner/routes/scanner.js';
 import chatRoutes from './src/chat/routes/chat.js';
+import newsletterRoutes from './src/newsletter/routes/newsletter.js';
+import callbackRoutes from './src/callback/routes/callback.js';
 import { initTelegramBot, processWebhookUpdate } from './src/chat/services/telegramService.js';
 import { initSchema } from './src/db/index.js';
 
@@ -35,6 +37,11 @@ if (!process.env.TELEGRAM_BOT_TOKEN) {
 if (!process.env.TELEGRAM_ADMIN_CHAT_ID) {
   console.error('WARNING: TELEGRAM_ADMIN_CHAT_ID not found in .env file!');
   console.error('Telegram messages will not be sent until TELEGRAM_ADMIN_CHAT_ID is configured');
+}
+
+if (!process.env.NEWSLETTER_ADMIN_KEY) {
+  console.error('WARNING: NEWSLETTER_ADMIN_KEY not found in .env file!');
+  console.error('POST /api/newsletter/broadcast will be disabled until NEWSLETTER_ADMIN_KEY is configured');
 }
 
 // Initialize Postgres schema
@@ -126,6 +133,8 @@ app.post('/api/telegram/webhook', (req, res) => {
 app.use('/api/calculator', calculatorRoutes);
 app.use('/api/scanner', scannerRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/callback', callbackRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

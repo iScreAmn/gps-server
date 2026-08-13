@@ -21,3 +21,13 @@ CREATE INDEX IF NOT EXISTS messages_user_at_idx ON messages (user_id, at);
 
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS telegram_message_id BIGINT;
 CREATE INDEX IF NOT EXISTS messages_tg_msg_id_idx ON messages (telegram_message_id);
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id               BIGSERIAL PRIMARY KEY,
+  email            TEXT NOT NULL UNIQUE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  unsubscribed_at  TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS newsletter_subscribers_active_idx
+  ON newsletter_subscribers (email) WHERE unsubscribed_at IS NULL;
