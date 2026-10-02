@@ -10,6 +10,7 @@ import newsletterRoutes from './src/newsletter/routes/newsletter.js';
 import callbackRoutes from './src/callback/routes/callback.js';
 import { initTelegramBot, processWebhookUpdate } from './src/chat/services/telegramService.js';
 import { initSchema } from './src/db/index.js';
+import { isEmailEnabled } from './src/calculator/config/email.js';
 
 // Get current directory (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
@@ -19,14 +20,18 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '.env') });
 
 // Verify critical env vars are loaded
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-  console.error('WARNING: SMTP credentials not found in .env file!');
-  console.error('Please create .env file with SMTP_USER and SMTP_PASS');
-}
+if (!isEmailEnabled()) {
+  console.log('Email sending is disabled (EMAIL_ENABLED !== "true") — notifications go to Telegram only');
+} else {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('WARNING: SMTP credentials not found in .env file!');
+    console.error('Please create .env file with SMTP_USER and SMTP_PASS');
+  }
 
-if (!process.env.ADMIN_EMAIL) {
-  console.error('WARNING: ADMIN_EMAIL not found in .env file!');
-  console.error('Emails will not be sent until ADMIN_EMAIL is configured');
+  if (!process.env.ADMIN_EMAIL) {
+    console.error('WARNING: ADMIN_EMAIL not found in .env file!');
+    console.error('Emails will not be sent until ADMIN_EMAIL is configured');
+  }
 }
 
 if (!process.env.TELEGRAM_BOT_TOKEN) {

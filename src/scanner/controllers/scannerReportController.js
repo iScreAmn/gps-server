@@ -1,4 +1,6 @@
 import { sendScanReportEmail } from '../services/sendScanReportEmail.js';
+import { isEmailEnabled } from '../../calculator/config/email.js';
+import { sendScanReportToTelegram } from '../../chat/services/telegramService.js';
 
 const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024;
 const MIN_ATTACHMENT_BYTES = 64;
@@ -58,15 +60,26 @@ export const sendScanReport = async (req, res) => {
 
     const safeName = sanitizeFilename(filename);
 
-    await sendScanReportEmail({
-      to: String(to).trim(),
-      filename: safeName,
-      buffer,
-    });
+    const recipient = String(to).trim();
+
+    // Email is temporarily disabled — the report goes to the admin Telegram chat
+    if (isEmailEnabled()) {
+      await sendScanReportEmail({ to: recipient, filename: safeName, buffer });
+    } else {
+      const result = await sendScanReportToTelegram({
+        to: recipient,
+        filename: safeName,
+        buffer,
+        timestamp: new Date(),
+      });
+      if (!result.success) {
+        throw new Error('Failed to deliver scan report to Telegram');
+      }
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Email sent',
+      message: 'Report sent',
     });
   } catch (error) {
     console.error('sendScanReport error:', error);

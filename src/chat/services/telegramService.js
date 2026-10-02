@@ -277,3 +277,100 @@ export const sendImageToTelegram = async (
     return { success: false };
   }
 };
+
+export const sendCalculatorRequestToTelegram = async ({
+  deviceType,
+  brand,
+  jobType,
+  contactMethod,
+  name,
+  phone,
+  email,
+  language,
+  timestamp,
+}) => {
+  if (!bot || !isInitialized) {
+    console.error('Telegram bot not initialized');
+    return { success: false };
+  }
+
+  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!chatId || chatId === 'your_chat_id_here') {
+    console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
+    return { success: false };
+  }
+
+  try {
+    const formattedTime = new Intl.DateTimeFormat('ka-GE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(timestamp);
+
+    const text =
+      `📋 Новая заявка из калькулятора GPS\n\n` +
+      `📦 Тип устройства: ${deviceType}\n` +
+      `🏢 Бренд: ${brand}\n` +
+      `💼 Тип работы: ${jobType}` +
+      (contactMethod ? `\n📞 Способ связи: ${contactMethod}` : '') +
+      `\n\n👤 Имя: ${name}\n` +
+      `📱 Телефон: ${phone}\n` +
+      `✉️ Email: ${email}` +
+      (language ? `\n🌐 Язык сайта: ${language}` : '') +
+      `\n\nОтправлено: ${formattedTime}`;
+
+    await bot.sendMessage(chatId, text);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send calculator request to Telegram:', error.message);
+    return { success: false };
+  }
+};
+
+export const sendScanReportToTelegram = async ({ to, filename, buffer, timestamp }) => {
+  if (!bot || !isInitialized) {
+    console.error('Telegram bot not initialized');
+    return { success: false };
+  }
+
+  const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!chatId || chatId === 'your_chat_id_here') {
+    console.error('TELEGRAM_ADMIN_CHAT_ID not configured in .env');
+    return { success: false };
+  }
+
+  try {
+    const formattedTime = new Intl.DateTimeFormat('ka-GE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).format(timestamp);
+
+    const caption =
+      `📊 Отчёт сканера GPS (XLSX)\n\n` +
+      `✉️ Запрошен на email: ${to}\n\n` +
+      `Отправлено: ${formattedTime}`;
+
+    await bot.sendDocument(
+      chatId,
+      buffer,
+      { caption },
+      {
+        filename,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send scan report to Telegram:', error.message);
+    return { success: false };
+  }
+};

@@ -1,4 +1,12 @@
-import { sendCalculatorEmail } from '../services/emailService.js';
+import {
+  sendCalculatorEmail,
+  getLabel,
+  deviceTypeLabels,
+  brandLabels,
+  jobTypeLabels,
+} from '../services/emailService.js';
+import { isEmailEnabled } from '../config/email.js';
+import { sendCalculatorRequestToTelegram } from '../../chat/services/telegramService.js';
 
 /**
  * Submit calculator form
@@ -72,8 +80,26 @@ export const submitCalculator = async (req, res) => {
       userAgent: req.get('user-agent') || 'Unknown'
     };
 
-    // Send email
-    await sendCalculatorEmail(emailData);
+    const telegramResult = await sendCalculatorRequestToTelegram({
+      deviceType: getLabel(deviceTypeLabels, normalizedDeviceType, 'en'),
+      brand: getLabel(brandLabels, brand, 'en'),
+      jobType: getLabel(jobTypeLabels, job_type, 'en'),
+      contactMethod: contact_method,
+      name,
+      phone,
+      email,
+      language: emailData.language,
+      timestamp: new Date(),
+    });
+
+    if (!telegramResult.success) {
+      throw new Error('Failed to deliver calculator request to Telegram');
+    }
+
+    // Email is temporarily disabled — see isEmailEnabled()
+    if (isEmailEnabled()) {
+      await sendCalculatorEmail(emailData);
+    }
 
     // Log successful submission
     console.log('Calculator submission successful:', {

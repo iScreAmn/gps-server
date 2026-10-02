@@ -8,6 +8,7 @@ import {
   sendNewsletterBroadcastSummaryToTelegram,
 } from '../../chat/services/telegramService.js';
 import { sendNewsletterBroadcast } from '../services/newsletterEmailService.js';
+import { isEmailEnabled } from '../../calculator/config/email.js';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -88,6 +89,14 @@ export const broadcast = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: '"title" and "type" ("article" | "product") are required',
+      });
+    }
+
+    // Email is temporarily disabled — subscribers are still collected, nothing is sent
+    if (!isEmailEnabled()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Email sending is temporarily disabled (EMAIL_ENABLED is not "true")',
       });
     }
 

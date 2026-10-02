@@ -1,4 +1,10 @@
 /**
+ * Email delivery is temporarily switched off — notifications go to Telegram.
+ * Set EMAIL_ENABLED=true to send emails via SMTP again.
+ */
+export const isEmailEnabled = () => process.env.EMAIL_ENABLED === 'true';
+
+/**
  * Email configuration for nodemailer
  * Function to get config at runtime (after .env is loaded)
  */

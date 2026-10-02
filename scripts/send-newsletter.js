@@ -1,14 +1,3 @@
-#!/usr/bin/env node
-/**
- * Manually trigger a newsletter broadcast after publishing news/product content.
- *
- * Usage:
- *   node scripts/send-newsletter.js --type article --title "..." --description "..." --url "https://geopolser.ge/news/some-id"
- *
- * Env:
- *   NEWSLETTER_API_URL   Base server URL (default: https://gps-app-server.vercel.app)
- *   NEWSLETTER_ADMIN_KEY Must match the server's NEWSLETTER_ADMIN_KEY
- */
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -36,7 +25,7 @@ if (!args.title || !args.type) {
   process.exit(1);
 }
 
-const baseUrl = (process.env.NEWSLETTER_API_URL || 'https://gps-app-server.vercel.app').replace(/\/$/, '');
+const baseUrl = (process.env.NEWSLETTER_API_URL || 'https://geopolser-server.vercel.app').replace(/\/$/, '');
 const adminKey = process.env.NEWSLETTER_ADMIN_KEY;
 
 if (!adminKey) {

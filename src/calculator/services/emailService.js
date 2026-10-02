@@ -54,7 +54,7 @@ const translations = {
 /**
  * Device type labels in both languages
  */
-const deviceTypeLabels = {
+export const deviceTypeLabels = {
   printer: { en: 'Printer', ka: 'პრინტერი' },
   cutter: { en: 'Cutter', ka: 'საჭრელი' },
   binder: { en: 'Binder', ka: 'ამკინძავი' },
@@ -64,7 +64,7 @@ const deviceTypeLabels = {
 /**
  * Job type labels in both languages
  */
-const jobTypeLabels = {
+export const jobTypeLabels = {
   advertising: { en: 'Advertising', ka: 'სარეკლამო' },
   photoStudio: { en: 'Photo Studio', ka: 'ფოტო სტუდია' },
   typography: { en: 'Typography', ka: 'სტამბა' }
@@ -73,7 +73,7 @@ const jobTypeLabels = {
 /**
  * Brand labels (brands remain identical in both languages)
  */
-const brandLabels = {
+export const brandLabels = {
   develop: { en: 'Develop', ka: 'Develop' },
   nocai: { en: 'Nocai', ka: 'Nocai' },
   audley: { en: 'Audley', ka: 'Audley' },
@@ -87,7 +87,7 @@ const brandLabels = {
   matrix: { en: 'Matrix', ka: 'Matrix' }
 };
 
-const getLabel = (labels, key, language = 'en') => {
+export const getLabel = (labels, key, language = 'en') => {
   if (!labels[key]) {
     return key;
   }
