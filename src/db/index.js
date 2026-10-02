@@ -9,6 +9,7 @@ const { Pool } = pg;
 
 const connectionString =
   process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL || // injected by the Vercel/Neon storage integration
   `postgres://${process.env.PGUSER || process.env.USER}@localhost:5432/gps_chat`;
 
 export const pool = new Pool({
