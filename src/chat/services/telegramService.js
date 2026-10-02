@@ -38,7 +38,19 @@ const handleIncomingMessage = async (msg) => {
   }
 };
 
-export const initTelegramBot = async () => {
+let initPromise = null;
+
+// Serverless cold start: requests may arrive before init finishes, so every
+// sender awaits the same init promise instead of failing immediately.
+export const initTelegramBot = () => {
+  if (!initPromise) initPromise = doInitTelegramBot();
+  return initPromise;
+};
+
+const describeTelegramError = (error) =>
+  error.response?.body?.description || error.message;
+
+const doInitTelegramBot = async () => {
   if (isInitialized) return;
 
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -49,15 +61,20 @@ export const initTelegramBot = async () => {
 
   try {
     if (isVercel) {
+      // Webhook updates are handled directly in processWebhookUpdate
       bot = new TelegramBot(token);
-      bot.on('message', handleIncomingMessage);
 
       const baseUrl = process.env.TELEGRAM_WEBHOOK_URL;
       if (baseUrl) {
         const hookUrl = `${baseUrl.replace(/\/$/, '')}/api/telegram/webhook`;
         const secret = process.env.TELEGRAM_WEBHOOK_SECRET || '';
-        await bot.setWebHook(hookUrl, secret ? { secret_token: secret } : {});
-        console.log('Telegram webhook set:', hookUrl);
+        // A webhook failure must not block outgoing notifications
+        try {
+          await bot.setWebHook(hookUrl, secret ? { secret_token: secret } : {});
+          console.log('Telegram webhook set:', hookUrl);
+        } catch (error) {
+          console.error('Failed to set Telegram webhook:', describeTelegramError(error));
+        }
       } else {
         console.warn('TELEGRAM_WEBHOOK_URL not set — replies from Telegram will not work');
       }
@@ -74,16 +91,21 @@ export const initTelegramBot = async () => {
     isInitialized = true;
     console.log(`Telegram bot initialized (${isVercel ? 'webhook' : 'polling'} mode)`);
   } catch (error) {
-    console.error('Failed to initialize Telegram bot:', error.message);
+    console.error('Failed to initialize Telegram bot:', describeTelegramError(error));
   }
 };
 
-export const processWebhookUpdate = (body) => {
-  if (!bot) return;
-  bot.processUpdate(body);
+// Awaited by the webhook route: on Vercel the function is frozen once the
+// response is sent, so the reply must be saved to the DB before that.
+export const processWebhookUpdate = async (body) => {
+  await initTelegramBot();
+  const msg = body?.message;
+  if (!bot || !msg) return;
+  await handleIncomingMessage(msg);
 };
 
 export const sendToTelegram = async (userId, userName, message, timestamp) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -111,12 +133,13 @@ export const sendToTelegram = async (userId, userName, message, timestamp) => {
     console.log(`Message sent to Telegram for user ${userId}`);
     return { success: true, telegramMessageId: sentMessage.message_id };
   } catch (error) {
-    console.error('Failed to send message to Telegram:', error.message);
+    console.error('Failed to send message to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };
 
 export const sendNewsletterSubscriberToTelegram = async (email, timestamp) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -143,7 +166,7 @@ export const sendNewsletterSubscriberToTelegram = async (email, timestamp) => {
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to send newsletter subscriber to Telegram:', error.message);
+    console.error('Failed to send newsletter subscriber to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };
@@ -155,6 +178,7 @@ export const sendCallbackRequestToTelegram = async ({
   language,
   timestamp,
 }) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -188,12 +212,13 @@ export const sendCallbackRequestToTelegram = async ({
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to send callback request to Telegram:', error.message);
+    console.error('Failed to send callback request to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };
 
 export const sendNewsletterBroadcastSummaryToTelegram = async ({ subject, recipientCount, failedCount }) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -214,7 +239,7 @@ export const sendNewsletterBroadcastSummaryToTelegram = async ({ subject, recipi
     await bot.sendMessage(chatId, text);
     return { success: true };
   } catch (error) {
-    console.error('Failed to send broadcast summary to Telegram:', error.message);
+    console.error('Failed to send broadcast summary to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };
@@ -227,6 +252,7 @@ export const sendImageToTelegram = async (
   caption,
   timestamp
 ) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -273,7 +299,7 @@ export const sendImageToTelegram = async (
     console.log(`Image sent to Telegram for user ${userId}`);
     return { success: true, telegramMessageId: sentMessage.message_id };
   } catch (error) {
-    console.error('Failed to send image to Telegram:', error.message);
+    console.error('Failed to send image to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };
@@ -289,6 +315,7 @@ export const sendCalculatorRequestToTelegram = async ({
   language,
   timestamp,
 }) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -326,12 +353,13 @@ export const sendCalculatorRequestToTelegram = async ({
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to send calculator request to Telegram:', error.message);
+    console.error('Failed to send calculator request to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };
 
 export const sendScanReportToTelegram = async ({ to, filename, buffer, timestamp }) => {
+  await initTelegramBot();
   if (!bot || !isInitialized) {
     console.error('Telegram bot not initialized');
     return { success: false };
@@ -370,7 +398,7 @@ export const sendScanReportToTelegram = async ({ to, filename, buffer, timestamp
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to send scan report to Telegram:', error.message);
+    console.error('Failed to send scan report to Telegram:', describeTelegramError(error));
     return { success: false };
   }
 };

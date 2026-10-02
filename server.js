@@ -125,12 +125,18 @@ app.get('/health', (req, res) => {
 });
 
 // Telegram webhook endpoint
-app.post('/api/telegram/webhook', (req, res) => {
+app.post('/api/telegram/webhook', async (req, res) => {
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (secret && req.headers['x-telegram-bot-api-secret-token'] !== secret) {
+    console.error('Telegram webhook rejected: secret token mismatch');
     return res.status(403).json({ error: 'Invalid secret' });
   }
-  processWebhookUpdate(req.body);
+  try {
+    await processWebhookUpdate(req.body);
+  } catch (err) {
+    console.error('Failed to process Telegram webhook update:', err.message);
+  }
+  // Always 200 so Telegram doesn't keep retrying the same update
   res.json({ ok: true });
 });
 
