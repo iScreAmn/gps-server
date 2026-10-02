@@ -66,6 +66,18 @@ export const insertAgentMessage = async ({ userId, text, at }) => {
   return rows[0].id;
 };
 
+// Wipes all chat users and their messages (ON DELETE CASCADE).
+// Newsletter subscribers are kept.
+export const deleteAllChatHistory = async () => {
+  const { rows } = await query(
+    `WITH deleted_users AS (DELETE FROM users RETURNING id)
+     SELECT
+       (SELECT count(*) FROM deleted_users)::int AS users,
+       (SELECT count(*) FROM messages)::int AS messages`
+  );
+  return rows[0];
+};
+
 export const setTelegramMessageId = async (dbId, telegramMessageId) => {
   await query(
     'UPDATE messages SET telegram_message_id = $1 WHERE id = $2',

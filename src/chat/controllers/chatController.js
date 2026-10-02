@@ -6,6 +6,7 @@ import {
   getHistory,
   setTelegramMessageId,
   getNewAgentMessages,
+  deleteAllChatHistory,
 } from '../../db/index.js';
 
 /**
@@ -182,5 +183,29 @@ export const clearMessages = async (req, res) => {
       message: 'Internal server error',
       error: error.message,
     });
+  }
+};
+
+/**
+ * Nightly wipe of all chat history (Vercel Cron, 23:00 Tbilisi)
+ * GET /api/cron/cleanup-chat
+ * Header: Authorization: Bearer <CRON_SECRET>
+ */
+export const cleanupChatHistory = async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return res.status(500).json({ success: false, message: 'CRON_SECRET not configured on server' });
+  }
+  if (req.headers.authorization !== `Bearer ${secret}`) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+
+  try {
+    const deleted = await deleteAllChatHistory();
+    console.log('Chat history cleanup done:', deleted);
+    return res.json({ success: true, deleted });
+  } catch (error) {
+    console.error('Error in cleanupChatHistory:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

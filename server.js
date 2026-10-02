@@ -11,6 +11,7 @@ import callbackRoutes from './src/callback/routes/callback.js';
 import { initTelegramBot, processWebhookUpdate } from './src/chat/services/telegramService.js';
 import { initSchema } from './src/db/index.js';
 import { isEmailEnabled } from './src/calculator/config/email.js';
+import { cleanupChatHistory } from './src/chat/controllers/chatController.js';
 
 // Get current directory (for ES modules)
 const __filename = fileURLToPath(import.meta.url);
@@ -139,6 +140,9 @@ app.post('/api/telegram/webhook', async (req, res) => {
   // Always 200 so Telegram doesn't keep retrying the same update
   res.json({ ok: true });
 });
+
+// Nightly chat history cleanup (triggered by Vercel Cron, see vercel.json)
+app.get('/api/cron/cleanup-chat', cleanupChatHistory);
 
 // API Routes
 app.use('/api/calculator', calculatorRoutes);
