@@ -345,7 +345,7 @@ export const sendCalculatorRequestToTelegram = async ({
       (contactMethod ? `\n📞 Способ связи: ${contactMethod}` : '') +
       `\n\n👤 Имя: ${name}\n` +
       `📱 Телефон: ${phone}\n` +
-      `✉️ Email: ${email}` +
+      `✉️ Email: ${email || '—'}` +
       (language ? `\n🌐 Язык сайта: ${language}` : '') +
       `\n\nОтправлено: ${formattedTime}`;
 

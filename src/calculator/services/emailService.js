@@ -295,7 +295,7 @@ const generateEmailHTML = (data) => {
           </div>
           <div class="field highlight">
             <div class="label">✉️ ${t.email}</div>
-            <div class="value">${data.email}</div>
+            <div class="value">${data.email || '—'}</div>
           </div>
           <div class="field">
             <div class="label">📅 ${t.date}</div>
@@ -363,7 +363,7 @@ ${t.contactMethod}: ${data.contact_method}
 
 ${t.name}: ${data.name}
 ${t.phone}: ${data.phone}
-${t.email}: ${data.email}
+${t.email}: ${data.email || '—'}
 
 ${t.date}: ${data.submitted_at}
 

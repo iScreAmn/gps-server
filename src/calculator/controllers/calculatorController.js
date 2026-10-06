@@ -23,24 +23,27 @@ export const submitCalculator = async (req, res) => {
       contact_method,
       name,
       phone,
-      email,
+      email: rawEmail,
       language 
     } = req.body;
+
+    // Email необязателен: пустую строку считаем отсутствием значения
+    const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
 
     const normalizedDeviceType = device_type || printer_type;
 
     // Validation - required fields
-    if (!normalizedDeviceType || !brand || !job_type || !name || !phone || !email) {
+    if (!normalizedDeviceType || !brand || !job_type || !name || !phone) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
-        required: ['device_type', 'brand', 'job_type', 'name', 'phone', 'email']
+        required: ['device_type', 'brand', 'job_type', 'name', 'phone']
       });
     }
 
-    // Validate email
+    // Validate email (only when provided)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (email && !emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid email format'
